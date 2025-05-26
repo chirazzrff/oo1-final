@@ -4,6 +4,7 @@ import 'package:oo/admin/ManageStudentsScreen.dart';
 import 'package:oo/view/screens/login_screen/login_screen.dart';
 
 import '../view/chat_view/list_user.dart';
+import 'EmploiDuTempsScreen.dart';
 import 'manageSyllabus.dart';
 import 'manage_users.dart';
 import 'manage_schools.dart';
@@ -81,7 +82,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   Row(
                     children: [
                       const Text(
-                        "Admin Dashboard",
+                        "tableau de bord ",
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 22,
@@ -104,7 +105,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    "Welcome, $adminName 👋",
+                    "bienvenue, $adminName 👋",
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 16,
@@ -125,14 +126,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 mainAxisSpacing: 10,
                 childAspectRatio: 0.95,
                 children: [
-                  AdminCard(icon: Icons.group, title: "Manage users", route: ManageUsersScreen.routeName),
-                  AdminCard(icon: Icons.school, title: "Managing schools", route: ManageSchoolsScreen.routeName),
-                  AdminCard(icon: Icons.payment, title: "Manage payments", route: ManagePaymentsScreen.routeName),
-                  AdminCard(icon: Icons.bar_chart, title: "View the data", route: ViewDataScreen.routeName),
-                  AdminCard(icon: Icons.notifications, title: "Manage notifications", route: ManageNotificationsScreen.routeName),
-                  AdminCard(icon: Icons.people, title: "List of students", route: ManageStudentsScreen.routeName),
-                  AdminCard(icon: Icons.book, title: "List of syllabuses", route: ManageSyllabusScreen.routeName),
-                  AdminCard(icon: Icons.chat, title: "Chat", route: UserListScreen.routeName),
+                  AdminCard(icon: Icons.group, title: "gérer les utilisateurs", route: ManageUsersScreen.routeName),
+                  AdminCard(icon: Icons.school, title: "gérer les ecoles", route: ManageSchoolsScreen.routeName),
+                  AdminCard(icon: Icons.payment, title: "gérer payment", route: ManagePaymentsScreen.routeName),
+                  AdminCard(icon: Icons.bar_chart, title: "data", route: ViewDataScreen.routeName),
+                  AdminCard(icon: Icons.notifications, title: "gérer notifications", route: ManageNotificationsScreen.routeName),
+                  AdminCard(icon: Icons.people, title: "la liste d'etudients", route: ManageStudentsScreen.routeName),
+                  AdminCard(icon: Icons.book, title: "programme", route: ManageSyllabusScreen.routeName),
+                  AdminCard(icon: Icons.chat, title: "discution", route: UserListScreen.routeName),
+                  AdminCard(icon: Icons.calendar_today, title: "Emploi du Temps", route: AjouterEmploiDuTempsScreen.routeName,
+                  ),
+
                 ],
               ),
             ),

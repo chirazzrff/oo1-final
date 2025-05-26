@@ -48,10 +48,10 @@ Map<String, WidgetBuilder> routes = {
   ParentHomeScreen.routeName: (context) => ParentHomeScreen(),
   
   TeacherHomeScreen.routeName: (context) => TeacherHomeScreen(),
-  ParentProfileScreen.routeName: (context) => ParentProfileScreen(),
+  SelectChildScreen.routeName: (context) => SelectChildScreen(),
   TeacherProfileScreen.routeName: (context) => TeacherProfileScreen(),
   'TeacherProfile': (context) => TeacherHomeScreen(),
-  'ParentProfile': (context) => ParentProfileScreen(),
+  'ParentProfile': (context) => SelectChildScreen(),
   'StudentProfileScreen': (context) => MyProfileScreen(),
   AdminDashboard.routeName: (context) => AdminDashboard(),
   ManageUsersScreen.routeName: (context) => ManageUsersScreen(),

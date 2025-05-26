@@ -1,197 +1,208 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class GradesScreen extends StatefulWidget {
-  static const String routeName = '/grades';
-  const GradesScreen({Key? key}) : super(key: key);
+class ParentGradesScreen extends StatefulWidget {
+  const ParentGradesScreen({Key? key}) : super(key: key);
 
   @override
-  State<GradesScreen> createState() => _GradesScreenState();
+  State<ParentGradesScreen> createState() => _ParentGradesScreenState();
 }
 
-class _GradesScreenState extends State<GradesScreen> {
-  List<Map<String, dynamic>> _grades = [];
-  bool _isLoading = true;
+class _ParentGradesScreenState extends State<ParentGradesScreen> {
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> students = [];
+  String? selectedStudentId;
+  List<Map<String, dynamic>> grades = [];
+  bool isLoading = true;
 
-  final LinearGradient myGradient = const LinearGradient(
+  @override
+  void initState() {
+    super.initState();
+    loadStudents();
+  }
+
+  Future<void> loadStudents() async {
+    final parentId = supabase.auth.currentUser?.id;
+    if (parentId == null) return;
+
+    final response = await supabase
+        .from('students')
+        .select('id, full_name')
+        .eq('parent_id', parentId);
+
+    setState(() {
+      students = List<Map<String, dynamic>>.from(response);
+      isLoading = false;
+    });
+  }
+
+  Future<void> loadGradesForStudent(String studentId) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final response = await supabase
+        .from('grades')
+        .select('subject, grade, evaluation, date')
+        .eq('student_id', studentId)
+        .order('date', ascending: false);
+
+    setState(() {
+      grades = List<Map<String, dynamic>>.from(response);
+      isLoading = false;
+    });
+  }
+
+  IconData getSubjectIcon(String subject) {
+    switch (subject.toLowerCase()) {
+      case 'math':
+        return Icons.calculate;
+      case 'physics':
+        return Icons.science;
+      case 'french':
+        return Icons.language;
+      case 'history':
+        return Icons.book;
+      default:
+        return Icons.school;
+    }
+  }
+
+  final Gradient backgroundGradient = const LinearGradient(
     colors: [Color(0xFF8E9EFB), Color(0xFFB8C6DB)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   @override
-  void initState() {
-    super.initState();
-    _fetchGrades();
-  }
-
-  Future<void> _fetchGrades() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('grades')
-          .select('subject, grade, evaluation, date, students(full_name)')
-          .order('date', ascending: false);
-
-      setState(() {
-        _grades = List<Map<String, dynamic>>.from(response);
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Échec du chargement des notes : $e')),
-      );
-    }
-  }
-
-  IconData _getSubjectIcon(String subject) {
-    switch (subject.toLowerCase()) {
-      case 'math':
-      case 'mathématiques':
-        return Icons.calculate;
-      case 'physique':
-        return Icons.science;
-      case 'informatique':
-        return Icons.computer;
-      case 'français':
-        return Icons.menu_book;
-      case 'histoire':
-        return Icons.account_balance;
-      case 'anglais':
-        return Icons.language;
-      default:
-        return Icons.school;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          ' Notes',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF8E9EFB),
-        elevation: 0,
-      ),
       body: Container(
-        decoration: BoxDecoration(gradient: myGradient),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : _grades.isEmpty
-                ? const Center(
+        decoration: BoxDecoration(gradient: backgroundGradient),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(top: 50, left: 20, right: 20, bottom: 20),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'My Children\'s Grades',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.family_restroom, color: Colors.white, size: 26),
+                ],
+              ),
+            ),
+
+            // Dropdown to select child
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: DropdownButtonFormField<String>(
+                value: selectedStudentId,
+                style: const TextStyle(color: Colors.black), // Selected text color
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  labelText: 'Select a Child',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: students.map((student) {
+                  return DropdownMenuItem<String>(
+                    value: student['id'],
                     child: Text(
-                      'Aucune note disponible.',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                        color: Colors.white,
+                      student['full_name'],
+                      style: const TextStyle(color: Colors.black), // Dropdown list text color
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedStudentId = value;
+                    });
+                    loadGradesForStudent(value);
+                  }
+                },
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Grades List
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                  : grades.isEmpty
+                  ? const Center(
+                child: Text(
+                  'No grades found.',
+                  style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+                ),
+              )
+                  : ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: grades.length,
+                itemBuilder: (context, index) {
+                  final grade = grades[index];
+                  final date = grade['date'].toString().split('T').first;
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      leading: Icon(
+                        getSubjectIcon(grade['subject']),
+                        color: const Color(0xFF345FB4),
+                        size: 30,
+                      ),
+                      title: Text(
+                        '${grade['subject']} - ${grade['grade']}/20',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF345FB4),
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${grade['evaluation']} • $date',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _grades.length,
-                    itemBuilder: (context, index) {
-                      final grade = _grades[index];
-                      final studentName = grade['students']?['full_name'] ?? 'Inconnu';
-                      final subject = grade['subject'] ?? 'Inconnu';
-                      final score = grade['grade']?.toString() ?? '--';
-                      final evaluation = grade['evaluation'] ?? 'Non spécifié';
-                      final dateStr = grade['date'] ?? '';
-                      final date = dateStr.isNotEmpty
-                          ? DateFormat('dd/MM/yyyy').format(DateTime.parse(dateStr))
-                          : 'N/A';
-
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 6,
-                        shadowColor: Colors.black26,
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF345FB4).withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.all(12),
-                                child: Icon(
-                                  _getSubjectIcon(subject),
-                                  size: 40,
-                                  color: const Color(0xFF345FB4),
-                                ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      subject,
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Color(0xFF345FB4),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Élève : $studentName',
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 15,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Note : $score / 20',
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 15,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Évaluation : $evaluation',
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Date : $date',
-                                      style: const TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 13,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

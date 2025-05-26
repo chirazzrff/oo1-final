@@ -1,201 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AttendanceScreen extends StatefulWidget {
-  const AttendanceScreen({Key? key}) : super(key: key);
-  static String routeName = '/attendance';
+class ParentAttendanceScreen extends StatefulWidget {
+  const ParentAttendanceScreen({Key? key}) : super(key: key);
 
   @override
-  _AttendanceScreenState createState() => _AttendanceScreenState();
+  _ParentAttendanceScreenState createState() => _ParentAttendanceScreenState();
 }
 
-class _AttendanceScreenState extends State<AttendanceScreen> {
-  DateTime? selectedDate;
-  int? selectedCourseIndex;
-  List<Map<String, dynamic>> courses = [];
-  List<Map<String, dynamic>> displayedStudents = [];
-  List<TextEditingController> commentControllers = [];
+class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
+  List<Map<String, dynamic>> attendanceRecords = [];
+  bool isLoading = true;
 
-
-  Future<void> _fetchCoursesForDate(DateTime date) async {
+  Future<void> fetchAttendanceForParent() async {
     final supabase = Supabase.instance.client;
-    String dateString =
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) return;
 
     try {
-      final response = await supabase
-          .from('cours')
-          .select('id, name')
-          .eq('course_date', dateString);
-
-      final List<dynamic> coursesFromDb = response;
-
-      setState(() {
-        courses = coursesFromDb.map<Map<String, dynamic>>((c) => {
-          'id': c['id'],
-          'name': c['name'],
-        }).toList();
-
-        selectedCourseIndex = null;
-        displayedStudents = [];
-        commentControllers = [];
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load courses: $e')),
-      );
-    }
-  }
-
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(fontSize: 16),
-              bodyMedium: TextStyle(fontSize: 14),
-              bodySmall: TextStyle(fontSize: 12),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-        selectedCourseIndex = null;
-        displayedStudents = [];
-        commentControllers = [];
-      });
-
-      await _fetchCoursesForDate(picked);
-    }
-  }
-
-  Future<void> _selectCourse(int index) async {
-    final supabase = Supabase.instance.client;
-    final courseName = courses[index]['name'];
-
-    try {
-      final response = await supabase
+      final studentsResponse = await supabase
           .from('students')
           .select('id, full_name')
-          .eq('course_name', courseName);
+          .eq('parent_id', userId);
 
-      List<Map<String, dynamic>> students = (response as List).map((e) => {
-        'id': e['id'],
-        'name': e['full_name'],
-        'present': false,
-        'comment': '',
-      }).toList();
+      final List<dynamic> students = studentsResponse;
 
-      commentControllers = List.generate(
-        students.length,
-            (i) => TextEditingController(text: ''),
-      );
+      if (students.isEmpty) {
+        setState(() {
+          attendanceRecords = [];
+          isLoading = false;
+        });
+        return;
+      }
+
+      final studentNames = students.map((s) => s['full_name']).toList();
+
+      final attendanceResponse = await supabase
+          .from('attendance')
+          .select('student_name, date, course, present, comment')
+          .inFilter('student_name', studentNames);
 
       setState(() {
-        selectedCourseIndex = index;
-        displayedStudents = students;
+        attendanceRecords = List<Map<String, dynamic>>.from(attendanceResponse);
+        isLoading = false;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load students: $e')),
-      );
+      print('Error fetching attendance: $e');
+      setState(() {
+        isLoading = false;
+      });
     }
   }
-
-  void _togglePresence(int index, bool value) {
-    setState(() {
-      displayedStudents[index]['present'] = value;
-    });
-  }
-
-  void _setComment(int index, String comment) {
-    setState(() {
-      displayedStudents[index]['comment'] = comment;
-    });
-  }
-
-  Future<void> _saveAttendance() async {
-    if (selectedDate == null || selectedCourseIndex == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a date and a course')),
-      );
-      return;
-    }
-
-    final supabase = Supabase.instance.client;
-    String courseName = courses[selectedCourseIndex!]['name'];
-    String dateString =
-        '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}';
-
-    try {
-      await supabase
-          .from('attendance')
-          .delete()
-          .eq('date', dateString)
-          .eq('course', courseName);
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to clear old attendance: $error')),
-      );
-      return;
-    }
-
-    List<Map<String, dynamic>> attendanceRecords = List.generate(displayedStudents.length, (index) {
-      return {
-        'date': dateString,
-        'course': courseName,
-        'student_name': displayedStudents[index]['name'],
-        'present': displayedStudents[index]['present'], // true/false أو 1/0 حسب جدولك
-        'comment': commentControllers[index].text,
-      };
-    });
-
-    try {
-      final response = await supabase.from('attendance').insert(attendanceRecords);
-      print('Insert response: $response');
-
-      if (response != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Attendance saved successfully!')),
-        );
-      } else {
-        throw 'Insert returned null';
-      }
-    } catch (error) {
-      print('Error saving attendance: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save attendance: $error')),
-      );
-    }
-  }
-
 
   @override
-  void dispose() {
-    for (var controller in commentControllers) {
-      controller.dispose();
-    }
-    super.dispose();
+  void initState() {
+    super.initState();
+    fetchAttendanceForParent();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attendance'),
-        backgroundColor: const Color(0xFF8E9EFB),
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -204,146 +70,106 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.date_range, color: Colors.white),
-                const SizedBox(width: 4),
-                if (selectedDate != null)
-                  Text(
-                    '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                const Spacer(),
-                ElevatedButton(
-                  onPressed: () => _selectDate(context),
-                  child: const Text('Choose Date'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8E9EFB),
-                    foregroundColor: Colors.white,
+        child: SafeArea(
+          child: Column(
+            children: [
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                title: const Text(
+                  "My Child's Attendance",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            if (selectedDate != null)
-              courses.isNotEmpty
-                  ? Wrap(
-                spacing: 10,
-                children: List.generate(courses.length, (index) {
-                  return ChoiceChip(
-                    label: Text(courses[index]['name']),
-                    selected: selectedCourseIndex == index,
-                    onSelected: (_) => _selectCourse(index),
-                    selectedColor: Colors.white70,
-                    backgroundColor: Colors.white24,
-                    labelStyle: TextStyle(
-                      color: selectedCourseIndex == index
-                          ? const Color(0xFF8E9EFB)
-                          : Colors.white,
-                    ),
-                  );
-                }),
-              )
-                  : const Text(
-                'No courses found for this date.',
-                style: TextStyle(color: Colors.white70),
+                centerTitle: true,
               ),
-            const SizedBox(height: 20),
-            if (selectedCourseIndex != null)
               Expanded(
-                child: ListView.builder(
-                  itemCount: displayedStudents.length,
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                    : attendanceRecords.isEmpty
+                    ? const Center(
+                  child: Text(
+                    'No attendance records found.',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                )
+                    : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: attendanceRecords.length,
                   itemBuilder: (context, index) {
-                    final student = displayedStudents[index];
-                    bool isPresent = student['present'];
-                    return Card(
-                      color: isPresent
-                          ? const Color(0xFF8E9EFB)
-                          : Colors.white.withOpacity(0.85),
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                    final record = attendanceRecords[index];
+                    final present = record['present'] == true;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            backgroundColor:
+                            present ? Colors.green[100] : Colors.red[100],
+                            child: Icon(
+                              present ? Icons.check : Icons.close,
+                              color: present ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${index + 1}. ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                    color: isPresent ? Colors.white : Colors.black,
+                                  '${record['student_name']} - ${record['course']}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.black
                                   ),
                                 ),
-                                Expanded(
-                                  child: Text(
-                                    student['name'],
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: isPresent ? Colors.white : Colors.black,
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Date: ${record['date']}',
+                                  style: const TextStyle(fontSize: 14,   color: Colors.black),
+
+                                ),
+                                if (record['comment'] != null &&
+                                    record['comment'].toString().isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Comment: ${record['comment']}',
+                                      style: const TextStyle(color: Colors.black,
+                                        fontSize: 14,
+
+
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Checkbox(
-                                  value: isPresent,
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      _togglePresence(index, value);
-                                    }
-                                  },
-                                  activeColor: Colors.white,
-                                  checkColor: const Color(0xFF8E9EFB),
-                                ),
                               ],
                             ),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: commentControllers[index],
-                              onChanged: (value) => _setComment(index, value),
-                              decoration: InputDecoration(
-                                hintText: 'Add comment (optional)',
-                                hintStyle: TextStyle(
-                                  color: isPresent ? Colors.white70 : Colors.black54,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                  borderSide: BorderSide.none,
-                                ),
-                                filled: true,
-                                fillColor:
-                                isPresent ? Colors.white24 : Colors.grey[200],
-                              ),
-                              style: TextStyle(
-                                color: isPresent ? Colors.white : Colors.black87,
-                              ),
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
+                          )
+                        ],
                       ),
                     );
                   },
                 ),
               ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _saveAttendance,
-              icon: const Icon(Icons.save),
-              label: const Text('Save Attendance'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C7BFF),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-                textStyle: const TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

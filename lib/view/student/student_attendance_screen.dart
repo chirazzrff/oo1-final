@@ -17,29 +17,45 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   List<Map<String, dynamic>> attendanceList = [];
   bool isLoading = true;
 
+  final TextEditingController studentCodeController = TextEditingController();
+  Map<String, dynamic>? studentDetails;
+  bool? isPresent;
+
   @override
-  void initState() {
-    super.initState();
-    _fetchAttendance();
+  void dispose() {
+    studentCodeController.dispose();
+    super.dispose();
   }
 
-  Future<void> _fetchAttendance() async {
+  Future<void> fetchAttendanceByStudentCode(String code) async {
+    setState(() {
+      isLoading = true;
+      studentDetails = null;
+      isPresent = null;
+    });
+
     final response = await supabase
         .from('attendance')
-        .select('date, present')
-        .order('date', ascending: false);
+        .select('student_code, student_name, date, present, course')
+        .eq('student_code', code)
+        .order('date', ascending: false)
+        .limit(1)
+        .maybeSingle();
 
-    if (response.error == null) {
+    if (response != null) {
       setState(() {
-        attendanceList = List<Map<String, dynamic>>.from(response.data as List);
+        studentDetails = response;
+        isPresent = response['present'] as bool?;
         isLoading = false;
       });
     } else {
       setState(() {
+        studentDetails = null;
+        isPresent = null;
         isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors du chargement des présences')),
+        SnackBar(content: Text('Code étudiant introuvable')),
       );
     }
   }
@@ -62,85 +78,117 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, // 👈 Pour que le dégradé passe derrière l’AppBar
       appBar: AppBar(
         title: const Text(
-          "Présence des étudiants",
+          "Vérifier Présence Étudiant",
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.transparent, // 👈 Enlève le bleu
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
       ),
+      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(gradient: backgroundGradient),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : attendanceList.isEmpty
-                ? Center(
-                    child: Text(
-                      "Aucune donnée de présence trouvée.",
-                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.white70),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+        child: Column(
+          children: [
+            // 🔹 Nouveau TextField modifié ici :
+            TextField(
+              controller: studentCodeController,
+              decoration: InputDecoration(
+                labelText: 'Entrez le code étudiant',
+                labelStyle: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.2),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: () {
+                    final code = studentCodeController.text.trim();
+                    if (code.isNotEmpty) {
+                      fetchAttendanceByStudentCode(code);
+                    }
+                  },
+                ),
+              ),
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  fetchAttendanceByStudentCode(value.trim());
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            if (isLoading)
+              const CircularProgressIndicator(color: Colors.white),
+            if (!isLoading && studentDetails != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 16),
-                    itemCount: attendanceList.length,
-                    itemBuilder: (context, index) {
-                      final item = attendanceList[index];
-                      final bool present = item['present'] ?? false;
-                      final String date = item['date'] ?? '';
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                          leading: Icon(
-                            present ? Icons.check_circle : Icons.cancel,
-                            color: present ? Colors.green : Colors.red,
-                            size: 32,
-                          ),
-                          title: Text(
-                            formatDate(date),
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF2E3A59),
-                            ),
-                          ),
-                          subtitle: Text(
-                            present ? "Présent" : "Absent",
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: present ? Colors.green.shade700 : Colors.red.shade700,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nom: ${studentDetails!['student_name'] ?? 'Inconnu'}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF2E3A59),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Date: ${formatDate(studentDetails!['date'] ?? '')}',
+                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Cours: ${studentDetails!['course'] ?? 'Inconnu'}',
+                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Présence: ${isPresent == true ? "Présent" : "Absent"}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isPresent == true ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (!isLoading && studentDetails == null)
+              Text(
+                "Aucun étudiant trouvé avec ce code.",
+                style: GoogleFonts.poppins(fontSize: 16, color: Colors.white70),
+              ),
+          ],
+        ),
       ),
     );
   }
-}
-
-extension on PostgrestList {
-  get error => null;
-  get data => null;
 }

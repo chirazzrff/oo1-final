@@ -7,11 +7,12 @@ import 'package:oo/view/screens/home_screen/teacher_home_screen%20(1).dart';
 import 'package:sizer/sizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../parent/parent_profile_screen.dart';
 import '../../student/student_home_screen.dart';
 import '../Signup_Screen/Signup_Screen.dart';
 import '../password/Forgot Password.dart';
 
-import '../../parent/parent_profile_screen.dart'; // À ajouter si nécessaire
+ // À ajouter si nécessaire
 
 var myColor = LinearGradient(
   colors: [Color(0xFF8E9EFB), Color(0xFFB8C6DB)],
@@ -88,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         case 'Parent':
           Navigator.pushReplacementNamed(
             context,
-            ParentProfileScreen.routeName,
+            SelectChildScreen.routeName,
           );
           break;
         case 'Admin':

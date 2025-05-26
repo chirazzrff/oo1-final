@@ -40,7 +40,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         selectedCourseIndex = null;
         displayedStudents = [];
         commentControllers = [];
-      });
+      }
+      );
+
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load courses: $e')),
@@ -143,7 +146,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     String dateString =
         '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}';
 
-    // 1. حذف السجلات القديمة لنفس التاريخ واسم الكورس
+    // حذف السجلات القديمة لنفس التاريخ واسم الكورس
     try {
       await supabase
           .from('attendance')
@@ -157,36 +160,31 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       return;
     }
 
-    // 2. تجهيز بيانات الحضور الجديدة
+    // تجهيز بيانات الحضور الجديدة
     List<Map<String, dynamic>> attendanceRecords = List.generate(displayedStudents.length, (index) {
       return {
         'date': dateString,
         'course': courseName,
         'student_name': displayedStudents[index]['name'],
-        'present': displayedStudents[index]['present'], // true/false أو 1/0 حسب جدولك
+        'present': displayedStudents[index]['present'],
         'comment': commentControllers[index].text,
       };
     });
 
-    // 3. إدخال السجلات الجديدة دفعة واحدة
+    // إدخال السجلات الجديدة دفعة واحدة مع try-catch
     try {
       final response = await supabase.from('attendance').insert(attendanceRecords);
-      print('Insert response: $response');
 
-      if (response != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Attendance saved successfully!')),
-        );
-      } else {
-        throw 'Insert returned null';
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attendance saved successfully!')),
+      );
     } catch (error) {
-      print('Error saving attendance: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save attendance: $error')),
       );
     }
   }
+
 
 
   @override
