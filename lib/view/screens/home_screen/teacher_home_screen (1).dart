@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:oo/view/student/notifications_screen.dart';
 import 'package:oo/view/teacher/CahierDeTexteScreen.dart';
 import 'package:oo/view/teacher/ChangePasswordScreen.dart';
@@ -7,21 +8,57 @@ import 'package:oo/view/teacher/ExamResultsScreen.dart';
 import 'package:oo/view/teacher/SyllabusScreen.dart';
 import 'package:oo/view/screens/login_screen/login_screen.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../teacher//attendance_screen.dart';
-import '../../teacher//attendance_screen.dart';
+import '../../teacher/attendance_screen.dart';
 import '../../teacher/MesCoursScreen.dart';
 import '../../teacher/StudentsListScreen.dart';
 
-class TeacherHomeScreen extends StatelessWidget {
+class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({Key? key}) : super(key: key);
   static String routeName = 'TeacherHomeScreen';
 
   @override
-  Widget build(BuildContext context) {
-    String teacherName = 'Mr. Karim B.';
+  State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
+}
 
+class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
+  String teacherName = 'Professeur';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTeacherName();
+  }
+
+  Future<void> fetchTeacherName() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user != null) {
+      try {
+        final response = await Supabase.instance.client
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (response != null) {
+          setState(() {
+            teacherName = response['full_name']?.toString().trim().isNotEmpty == true
+                ? response['full_name']
+                : 'Professeur';
+          });
+        } else {
+          print('⚠️ Aucun profil trouvé pour l\'utilisateur : ${user.id}');
+        }
+      } catch (e) {
+        print('❌ Erreur lors de la récupération du nom du professeur : $e');
+      }
+    } else {
+      print('⚠️ Aucun utilisateur connecté');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       body: SafeArea(
@@ -58,7 +95,8 @@ class TeacherHomeScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          await Supabase.instance.client.auth.signOut();
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -70,7 +108,7 @@ class TeacherHomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    "Bienvenue, $teacherName 👋",
+                    "bienvenue, $teacherName 👋",
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 16,
@@ -95,7 +133,7 @@ class TeacherHomeScreen extends StatelessWidget {
                   children: [
                     TeacherCard(
                       icon: Icons.group_add,
-                      title: "coure",
+                      title: "cours",
                       onTap: () {
                         final teacherId = Supabase.instance.client.auth.currentUser?.id;
                         if (teacherId != null) {
@@ -112,7 +150,6 @@ class TeacherHomeScreen extends StatelessWidget {
                         }
                       },
                     ),
-
                     TeacherCard(icon: Icons.assignment, title: "Cahier de texte", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CahierDeTexteScreen()))),
                     TeacherCard(icon: Icons.schedule, title: "Emploi du temps", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EmploiDuTempsScreen()))),
                     TeacherCard(icon: Icons.notifications, title: "Notifications", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen()))),
@@ -120,9 +157,7 @@ class TeacherHomeScreen extends StatelessWidget {
                     TeacherCard(icon: Icons.people, title: "Liste des élèves", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentListPage()))),
                     TeacherCard(icon: Icons.assignment_turned_in, title: "Résultats examens", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddStudentGradeScreen()))),
                     TeacherCard(icon: Icons.book, title: "Syllabus", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SyllabusScreen()))),
-                    TeacherCard(icon: Icons.check_circle, title: "Attendance", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen()),
-                    ),
-                    ),
+                    TeacherCard(icon: Icons.check_circle, title: "Attendance", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen()))),
                   ],
                 ),
               ),

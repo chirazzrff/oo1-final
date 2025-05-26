@@ -21,10 +21,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
 
   String parentName = "";
-  String childName = "";
-  String photoUrl = 'https://via.placeholder.com/150'; // Valeur par défaut
-  List<Map<String, dynamic>> childrenData = [];
-  List<Map<String, dynamic>> paymentsData = [];
+  String photoUrl = 'https://via.placeholder.com/150'; // default
   List<Map<String, dynamic>> studentsData = [];
 
   @override
@@ -34,54 +31,34 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   }
 
   Future<void> fetchParentData() async {
-    final parentId = supabase.auth.currentUser!.id;
+    try {
+      final parentId = supabase.auth.currentUser!.id;
 
-    // 1. Récupérer le parent
-    final parentResponse =
-        await supabase.from('parents').select().eq('id', parentId).single();
+      // 1. Get parent info
+      final parentResponse = await supabase
+          .from('Profiles')
+          .select('name, photo_url')
+          .eq('id', parentId)
+          .maybeSingle();
 
-    if (parentResponse != null) {
-      setState(() {
-        parentName = parentResponse['name'] ?? "Parent";
-        photoUrl =
-            parentResponse['photo_url'] ?? 'https://via.placeholder.com/150';
-      });
+      if (parentResponse != null) {
+        setState(() {
+          parentName = parentResponse['name'] ?? "Parent";
+          photoUrl = parentResponse['photo_url'] ?? 'https://via.placeholder.com/150';
+        });
 
-      // 2. Récupérer les enfants de ce parent
-      final childrenResponse = await supabase
-          .from('children')
-          .select()
-          .eq('parent_id', parentId);
+        // 2. Get students where parent_id == current user
+        final studentsResponse = await supabase
+            .from('students')
+            .select()
+            .eq('parent_id', parentId);
 
-      setState(() {
-        childrenData = List<Map<String, dynamic>>.from(childrenResponse);
-        if (childrenData.isNotEmpty) {
-          childName = childrenData.first['name'] ?? "Enfant";
-        }
-      });
-
-      // 3. Récupérer les paiements associés à ce parent
-      final paymentsResponse = await supabase
-          .from('payments')
-          .select()
-          .eq('parent_id', parentId);
-
-      setState(() {
-        paymentsData = List<Map<String, dynamic>>.from(paymentsResponse);
-      });
-
-      // 4. Récupérer les élèves liés à ces enfants (si distincts)
-      final studentsResponse = await supabase
-          .from('students')
-          .select()
-          .contains(
-            'child_id',
-            childrenData.map((child) => child['id']).toList(),
-          );
-
-      setState(() {
-        studentsData = List<Map<String, dynamic>>.from(studentsResponse);
-      });
+        setState(() {
+          studentsData = List<Map<String, dynamic>>.from(studentsResponse);
+        });
+      }
+    } catch (error) {
+      print("Error fetching parent data: $error");
     }
   }
 
@@ -98,10 +75,10 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         decoration: BoxDecoration(gradient: backgroundGradient),
         child: Column(
           children: [
-            // EN-TÊTE
+            // HEADER
             Container(
               width: double.infinity,
-              height: 160,
+              height: 180,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
               decoration: const BoxDecoration(color: Colors.transparent),
               child: Column(
@@ -111,7 +88,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   Row(
                     children: [
                       const Text(
-                        "Tableau de bord Parent",
+                        "Parent Dashboard",
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 22,
@@ -122,11 +99,9 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                       const Spacer(),
                       IconButton(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => LoginScreen(),
-                            ),
+                            MaterialPageRoute(builder: (context) => LoginScreen()),
                           );
                         },
                         icon: const Icon(Icons.logout, color: Colors.white),
@@ -135,20 +110,40 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    "Bienvenue, $parentName 👋",
+                    "Welcome, $parentName 👋",
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 16,
                       color: Colors.white70,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  if (studentsData.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Your Children:",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        ...studentsData.map((student) => Text(
+                          "- ${student['name']}",
+                          style: const TextStyle(color: Colors.white70),
+                        )),
+                      ],
+                    ),
                 ],
               ),
             ),
 
             const SizedBox(height: 10),
 
-            // GRID DE CARTES
+            // GRID VIEW
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -158,71 +153,55 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                 children: [
                   ParentCard(
                     icon: Icons.payment,
-                    title: "Statut du paiement",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ManagePaymentsScreen(),
-                          ),
-                        ),
+                    title: "Payment Status",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) =>ParentPaymentsScreen()),
+                    ),
                   ),
                   ParentCard(
                     icon: Icons.app_registration,
-                    title: "Enregistrement enfant",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChildRegistrationPage(),
-                          ),
-                        ),
+                    title: "Child Registration",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ChildRegistrationPage()),
+                    ),
                   ),
                   ParentCard(
                     icon: Icons.book_online,
-                    title: "Compensation leçons",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => LessonCompensationScreen(),
-                          ),
-                        ),
+                    title: "Lesson Compensation",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => LessonCompensationScreen()),
+                    ),
                   ),
                   ParentCard(
                     icon: Icons.check_circle,
-                    title: "Assiduité",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => AttendanceScreen()),
-                        ),
+                    title: "Attendance",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ParentAttendanceScreen()),
+                    ),
                   ),
                   ParentCard(
                     icon: Icons.message,
                     title: "Chats",
-                    onTap:
-                        () => Navigator.pushNamed(context, '/UserListScreen'),
+                    onTap: () => Navigator.pushNamed(context, '/UserListScreen'),
                   ),
-
                   ParentCard(
                     icon: Icons.assignment,
-                    title: "Devoirs",
+                    title: "Homework",
                     onTap: () => Navigator.pushNamed(context, 'HomeworkScreen'),
                   ),
                   ParentCard(
                     icon: Icons.grade,
-                    title: "Notes",
+                    title: "Grades",
                     onTap: () => Navigator.pushNamed(context, 'GradesScreen'),
                   ),
                   ParentCard(
                     icon: Icons.support_agent,
                     title: "Support",
-                    onTap:
-                        () => Navigator.pushNamed(
-                          context,
-                          'TechnicalSupportScreen',
-                        ),
+                    onTap: () => Navigator.pushNamed(context, 'TechnicalSupportScreen'),
                   ),
                 ],
               ),

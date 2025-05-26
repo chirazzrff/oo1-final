@@ -2,7 +2,10 @@ import 'package:oo/admin/ManageStudentsScreen.dart';
 import 'package:oo/my_profile_screen.dart';
 import 'package:oo/routes.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
+import 'package:oo/view/teacher/attendance_screen.dart';
+import 'admin/EmploiDuTempsScreen.dart';
+import 'admin/Emploi_Du_TempsScreen.dart';
+import 'chemin/vers/ajouter_emploi_du_temps_screen.dart';
 import 'package:oo/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:oo/view/chat_view/chatscreen_list.dart';
@@ -77,9 +80,10 @@ class MyApp extends StatelessWidget {
             'StudentProfile': (context) => StudentProfileScreen(),
             'SignUpScreen': (_) => SignUpScreen(),
             'HomeworkScreen': (context) => const HomeworkScreen(),
-            'GradesScreen': (context) => const GradesScreen(),
+            'GradesScreen': (context) => const ParentGradesScreen(),
             '/studentHome': (_) => StudentHomeScreen(),
             '/TeacherHomeScreen': (_) => TeacherHomeScreen(),
+            AjouterEmploiDuTempsScreen.routeName: (context) => AjouterEmploiDuTempsScreen(),
 
             '/adminDashboard': (_) => AdminDashboard(),
             '/UserListScreen': (_) => UserListScreen(),

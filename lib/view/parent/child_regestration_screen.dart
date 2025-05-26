@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Pour Poppins
+import 'package:oo/view/screens/datesheet_screen/data/datesheet_data.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChildRegistrationPage extends StatefulWidget {
   @override
@@ -8,7 +9,9 @@ class ChildRegistrationPage extends StatefulWidget {
 
 class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
+  final supabase = Supabase.instance.client;
 
+  // Text controllers
   final fullNameController = TextEditingController();
   final dobController = TextEditingController();
   final parentNameController = TextEditingController();
@@ -19,13 +22,19 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
   final expiryController = TextEditingController();
   final cvvController = TextEditingController();
 
+  String? _selectedLevel;
   String? _selectedClass;
   String? _selectedCourse;
   String? _paymentMethod;
 
-  final List<String> classes = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'];
   final List<String> courses = ['Math', 'Arabic', 'Science', 'French', 'History', 'Islamic Ed'];
   final List<String> paymentMethods = ['Cash', 'Credit Card', 'Bank Transfer'];
+
+  final Map<String, List<String>> levelToClasses = {
+    'Primary': ['1st Year', '2nd Year', '3rd Year'],
+    'Middle': ['4th Year', '5th Year'],
+    'High School': ['6th Year', '7th Year'],
+  };
 
   bool get isCardPayment => _paymentMethod == 'Credit Card';
 
@@ -43,86 +52,115 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
     super.dispose();
   }
 
+  Future<void> registerChildAndPayment() async {
+    final parentId = supabase.auth.currentUser?.id;
+
+    if (parentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Parent non connecté.")),
+      );
+      return;
+    }
+
+    try {
+      final childInsert = await supabase.from('children').insert({
+        'name': fullNameController.text,
+        'date_of_birth': dobController.text,
+        'class': _selectedClass,
+        'course': _selectedCourse,
+        'parent_id': parentId,
+      }).select().single();
+
+      final childId = childInsert['id'];
+
+      final paymentInsert = await supabase.from('pyment').insert({
+        'pyment_date': dateSheet,
+        'child_id': childId,
+        'amount': double.parse(amountController.text),
+        'method': _paymentMethod,
+        'status': 'Pending',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      if (paymentInsert.error != null) {
+        print('Erreur insertion paiement: ${paymentInsert.error!.message}');
+        throw Exception(paymentInsert.error!.message);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ Enregistrement réussi')),
+      );
+      _formKey.currentState?.reset();
+    } catch (e) {
+      print('Erreur: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Échec de l’enregistrement: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Gradient backgroundGradient = LinearGradient(
-      colors: [Color(0xFF8E9EFB), Color(0xFFB8C6DB)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(gradient: backgroundGradient),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Child Registration",
-                  style: GoogleFonts.poppins(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 24),
-
-                _buildSectionTitle('👶 Child Info'),
-                _buildField(Icons.person, 'Full Name', controller: fullNameController),
-                _buildField(Icons.calendar_today, 'Date of Birth', controller: dobController),
-                _buildDropdown(Icons.school, 'Select Class', classes, onChanged: (val) => setState(() => _selectedClass = val)),
-                _buildDropdown(Icons.book, 'Select Course', courses, onChanged: (val) => setState(() => _selectedCourse = val)),
-
-                _buildSectionTitle('👨‍👩‍👧 Parent Info'),
-                _buildField(Icons.person_outline, 'Parent Name', controller: parentNameController),
-                _buildField(Icons.phone, 'Phone Number', controller: phoneController, keyboardType: TextInputType.phone),
-
-                _buildSectionTitle('💳 Payment Info'),
-                _buildDropdown(Icons.payment, 'Payment Method', paymentMethods, onChanged: (val) {
-                  setState(() => _paymentMethod = val);
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Child Registration'),
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              _buildSectionTitle('👶 Child Info'),
+              _buildField(Icons.person, 'Full Name', controller: fullNameController),
+              _buildDateField(Icons.calendar_today, 'Date of Birth', dobController),
+              _buildDropdown(Icons.school, 'Select Level', levelToClasses.keys.toList(), onChanged: (val) {
+                setState(() {
+                  _selectedLevel = val;
+                  _selectedClass = null;
+                });
+              }),
+              if (_selectedLevel != null)
+                _buildDropdown(Icons.class_, 'Select Class', levelToClasses[_selectedLevel]!, onChanged: (val) {
+                  setState(() {
+                    _selectedClass = val;
+                  });
                 }),
-                _buildField(Icons.money, 'Amount (DA)', controller: amountController, keyboardType: TextInputType.number),
+              _buildDropdown(Icons.book, 'Select Course', courses, onChanged: (val) => _selectedCourse = val),
 
-                if (isCardPayment) ...[
-                  _buildField(Icons.credit_card, 'Cardholder Name', controller: cardholderController),
-                  _buildField(Icons.credit_card, 'Card Number', controller: cardNumberController, keyboardType: TextInputType.number),
-                  _buildField(Icons.date_range, 'Expiry Date (MM/YY)', controller: expiryController),
-                  _buildField(Icons.lock, 'CVV', controller: cvvController, keyboardType: TextInputType.number),
-                ],
+              _buildSectionTitle('💳 Payment Info'),
+              _buildDropdown(Icons.payment, 'Payment Method', paymentMethods, onChanged: (val) {
+                setState(() => _paymentMethod = val);
+              }),
+              _buildField(Icons.money, 'Amount (DA)', controller: amountController, keyboardType: TextInputType.number),
 
-                SizedBox(height: 30),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    icon: Icon(Icons.check_circle_outline, size: 24),
-                    label: Text(
-                      'Submit Registration',
-                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 215, 225, 245), // bleu foncé
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 5,
-                    ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        // TODO: registerChildAndPayment();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('✅ Registration submitted!')),
-                        );
-                      }
-                    },
-                  ),
-                ),
-                SizedBox(height: 20),
+              if (isCardPayment) ...[
+                _buildField(Icons.credit_card, 'Cardholder Name', controller: cardholderController),
+                _buildField(Icons.credit_card, 'Card Number', controller: cardNumberController, keyboardType: TextInputType.number),
+                _buildField(Icons.date_range, 'Expiry Date (MM/YY)', controller: expiryController),
+                _buildField(Icons.lock, 'CVV', controller: cvvController, keyboardType: TextInputType.number),
               ],
-            ),
+
+              SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: Icon(Icons.check_circle_outline),
+                label: Text('Submit Registration'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  minimumSize: Size(double.infinity, 50),
+                  textStyle: TextStyle(fontSize: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    registerChildAndPayment();
+                  }
+                },
+              )
+            ],
           ),
         ),
       ),
@@ -135,24 +173,44 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextFormField(
         controller: controller,
-        style: GoogleFonts.poppins(color: Colors.white),
+        style: const TextStyle(color: Colors.black),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.white70),
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
           labelText: label,
-          labelStyle: GoogleFonts.poppins(color: Colors.white70),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white54),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white),
-          ),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.15),
+          labelStyle: TextStyle(color: Colors.black),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         keyboardType: keyboardType,
         validator: (value) => value == null || value.isEmpty ? 'Please enter $label' : null,
+      ),
+    );
+  }
+
+  Widget _buildDateField(IconData icon, String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.black),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onTap: () async {
+          final pickedDate = await showDatePicker(
+            context: context,
+            initialDate: DateTime(2015),
+            firstDate: DateTime(2000),
+            lastDate: DateTime.now(),
+          );
+          if (pickedDate != null) {
+            controller.text =
+            "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+          }
+        },
+        validator: (value) => value == null || value.isEmpty ? 'Please select $label' : null,
       ),
     );
   }
@@ -162,26 +220,13 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: DropdownButtonFormField<String>(
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.white70),
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
           labelText: label,
-          labelStyle: GoogleFonts.poppins(color: Colors.white70),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white54),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white),
-          ),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.15),
+          labelStyle: TextStyle(color: Colors.black),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        dropdownColor: Color(0xFF345FB4),
         items: items
-            .map((e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(e, style: GoogleFonts.poppins(color: Colors.white)),
-                ))
+            .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.black))))
             .toList(),
         onChanged: onChanged,
         validator: (value) => value == null ? 'Please select $label' : null,
@@ -191,14 +236,14 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
 
   Widget _buildSectionTitle(String title) {
     return Container(
-      margin: EdgeInsets.only(top: 28, bottom: 12),
+      margin: EdgeInsets.only(top: 24, bottom: 12),
+      alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: GoogleFonts.poppins(
-          fontSize: 20,
+        style: TextStyle(
+          fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: [Shadow(blurRadius: 4, color: Colors.black26, offset: Offset(1, 1))],
+          color: Colors.blueAccent,
         ),
       ),
     );
