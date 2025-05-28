@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class AddStudentGradeScreen extends StatefulWidget {
   static const String routeName = '/addStudentGrade';
@@ -12,11 +13,12 @@ class AddStudentGradeScreen extends StatefulWidget {
 
 class _AddStudentGradeScreenState extends State<AddStudentGradeScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _subjectController = TextEditingController();
   final _gradeController = TextEditingController();
   final _evaluationController = TextEditingController();
-  DateTime? _selectedDate;
 
+  DateTime? _selectedDate;
   List<Map<String, dynamic>> _students = [];
   String? _selectedStudentId;
   bool isLoading = false;
@@ -98,17 +100,67 @@ class _AddStudentGradeScreenState extends State<AddStudentGradeScreen> {
   }
 
   Future<void> _pickDate() async {
-    final pickedDate = await showDatePicker(
+    DateTime? pickedDate;
+
+    await showDialog(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      builder: (context) {
+        DateTime focusedDay = DateTime.now();
+        DateTime selectedDay = _selectedDate ?? DateTime.now();
+
+        return AlertDialog(
+          title: const Text('Choisissez une date'),
+          content: Container(
+            width: 350,
+            height: 500,
+            child: TableCalendar(
+              firstDay: DateTime(2020),
+              lastDay: DateTime.now(),
+              focusedDay: focusedDay,
+              selectedDayPredicate: (day) {
+                return isSameDay(selectedDay, day);
+              },
+              onDaySelected: (selected, focused) {
+                setState(() {
+                  pickedDate = selected;
+                  _selectedDate = selected;
+                });
+                Navigator.pop(context);
+              },
+              calendarStyle: const CalendarStyle(
+                defaultTextStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+                weekendTextStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.red,
+                ),
+                cellMargin: EdgeInsets.all(6),
+                todayDecoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: Colors.deepPurple,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              daysOfWeekHeight: 30,
+              rowHeight: 60,
+              daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(fontWeight: FontWeight.bold),
+                weekendStyle: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
-    if (pickedDate != null) {
-      setState(() {
-        _selectedDate = pickedDate;
-      });
-    }
   }
 
   @override
@@ -160,8 +212,7 @@ class _AddStudentGradeScreenState extends State<AddStudentGradeScreen> {
                       controller: TextEditingController(
                         text: _selectedDate == null
                             ? ''
-                            : DateFormat('yyyy-MM-dd')
-                                .format(_selectedDate!),
+                            : DateFormat('yyyy-MM-dd').format(_selectedDate!),
                       ),
                       hintText: 'Date d\'évaluation',
                       icon: Icons.calendar_today,
@@ -172,23 +223,23 @@ class _AddStudentGradeScreenState extends State<AddStudentGradeScreen> {
                 isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8E9EFB),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () async {
-                          setState(() => isLoading = true);
-                          await _submitGrade();
-                          setState(() => isLoading = false);
-                        },
-                        child: const Text(
-                          'Enregistrer la note',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8E9EFB),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    setState(() => isLoading = true);
+                    await _submitGrade();
+                    setState(() => isLoading = false);
+                  },
+                  child: const Text(
+                    'Enregistrer la note',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
               ],
             ),
           ),
@@ -224,9 +275,8 @@ class _AddStudentGradeScreenState extends State<AddStudentGradeScreen> {
           prefixIcon: Icon(icon, color: Colors.grey),
           border: InputBorder.none,
         ),
-        validator: (value) => value == null || value.isEmpty
-            ? 'Ce champ est requis'
-            : null,
+        validator: (value) =>
+        value == null || value.isEmpty ? 'Ce champ est requis' : null,
       ),
     );
   }
@@ -246,7 +296,7 @@ class _AddStudentGradeScreenState extends State<AddStudentGradeScreen> {
         border: InputBorder.none,
       ),
       validator: (value) =>
-          value == null ? 'Veuillez sélectionner un étudiant' : null,
+      value == null ? 'Veuillez sélectionner un étudiant' : null,
     );
   }
 }

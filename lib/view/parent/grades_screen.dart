@@ -94,7 +94,7 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'My Children\'s Grades',
+                    'La note de mon enfant',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 22,
@@ -117,7 +117,7 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
-                  labelText: 'Select a Child',
+                  labelText: 'Selection un etudiant',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 items: students.map((student) {
@@ -149,7 +149,7 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
                   : grades.isEmpty
                   ? const Center(
                 child: Text(
-                  'No grades found.',
+                  'l\'etudiant n\'existe pas.',
                   style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
                 ),
               )
@@ -180,7 +180,7 @@ class _ParentGradesScreenState extends State<ParentGradesScreen> {
                         size: 30,
                       ),
                       title: Text(
-                        '${grade['subject']} - ${grade['grade']}/20',
+                        '${grade['subject']} - ${grade['note']}/20',
                         style: const TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 18,

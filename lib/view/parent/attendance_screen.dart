@@ -1,54 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ParentAttendanceScreen extends StatefulWidget {
-  const ParentAttendanceScreen({Key? key}) : super(key: key);
+class EcranPresenceParent extends StatefulWidget {
+  const EcranPresenceParent({Key? key}) : super(key: key);
 
   @override
-  _ParentAttendanceScreenState createState() => _ParentAttendanceScreenState();
+  _EcranPresenceParentState createState() => _EcranPresenceParentState();
 }
 
-class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
-  List<Map<String, dynamic>> attendanceRecords = [];
-  bool isLoading = true;
+class _EcranPresenceParentState extends State<EcranPresenceParent> {
+  List<Map<String, dynamic>> presences = [];
+  bool enChargement = true;
 
-  Future<void> fetchAttendanceForParent() async {
+  Future<void> recupererPresencesPourParent() async {
     final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser?.id;
+    final identifiantUtilisateur = supabase.auth.currentUser?.id;
 
-    if (userId == null) return;
+    if (identifiantUtilisateur == null) return;
 
     try {
-      final studentsResponse = await supabase
+      final reponseEleves = await supabase
           .from('students')
           .select('id, full_name')
-          .eq('parent_id', userId);
+          .eq('parent_id', identifiantUtilisateur);
 
-      final List<dynamic> students = studentsResponse;
+      final List<dynamic> eleves = reponseEleves;
 
-      if (students.isEmpty) {
+      if (eleves.isEmpty) {
         setState(() {
-          attendanceRecords = [];
-          isLoading = false;
+          presences = [];
+          enChargement = false;
         });
         return;
       }
 
-      final studentNames = students.map((s) => s['full_name']).toList();
+      final nomsEleves = eleves.map((e) => e['full_name']).toList();
 
-      final attendanceResponse = await supabase
+      final reponsePresences = await supabase
           .from('attendance')
           .select('student_name, date, course, present, comment')
-          .inFilter('student_name', studentNames);
+          .inFilter('student_name', nomsEleves);
 
       setState(() {
-        attendanceRecords = List<Map<String, dynamic>>.from(attendanceResponse);
-        isLoading = false;
+        presences = List<Map<String, dynamic>>.from(reponsePresences);
+        enChargement = false;
       });
     } catch (e) {
-      print('Error fetching attendance: $e');
+      print('Erreur lors de la récupération des présences : $e');
       setState(() {
-        isLoading = false;
+        enChargement = false;
       });
     }
   }
@@ -56,7 +56,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    fetchAttendanceForParent();
+    recupererPresencesPourParent();
   }
 
   @override
@@ -77,7 +77,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 title: const Text(
-                  "My Child's Attendance",
+                  "Présence de mon enfant",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -87,21 +87,21 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                 centerTitle: true,
               ),
               Expanded(
-                child: isLoading
+                child: enChargement
                     ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                    : attendanceRecords.isEmpty
+                    : presences.isEmpty
                     ? const Center(
                   child: Text(
-                    'No attendance records found.',
+                    'Aucun enregistrement de présence trouvé.',
                     style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 )
                     : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: attendanceRecords.length,
+                  itemCount: presences.length,
                   itemBuilder: (context, index) {
-                    final record = attendanceRecords[index];
-                    final present = record['present'] == true;
+                    final presence = presences[index];
+                    final estPresent = presence['present'] == true;
                     return Container(
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       padding: const EdgeInsets.all(16),
@@ -121,10 +121,10 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                         children: [
                           CircleAvatar(
                             backgroundColor:
-                            present ? Colors.green[100] : Colors.red[100],
+                            estPresent ? Colors.green[100] : Colors.red[100],
                             child: Icon(
-                              present ? Icons.check : Icons.close,
-                              color: present ? Colors.green : Colors.red,
+                              estPresent ? Icons.check : Icons.close,
+                              color: estPresent ? Colors.green : Colors.red,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -133,29 +133,27 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${record['student_name']} - ${record['course']}',
+                                  '${presence['student_name']} - ${presence['course']}',
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.black
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.black,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Date: ${record['date']}',
-                                  style: const TextStyle(fontSize: 14,   color: Colors.black),
-
+                                  'Date : ${presence['date']}',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black),
                                 ),
-                                if (record['comment'] != null &&
-                                    record['comment'].toString().isNotEmpty)
+                                if (presence['comment'] != null &&
+                                    presence['comment'].toString().isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4),
                                     child: Text(
-                                      'Comment: ${record['comment']}',
-                                      style: const TextStyle(color: Colors.black,
+                                      'Commentaire : ${presence['comment']}',
+                                      style: const TextStyle(
                                         fontSize: 14,
-
-
+                                        color: Colors.black,
                                       ),
                                     ),
                                   ),

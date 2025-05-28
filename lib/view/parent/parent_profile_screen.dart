@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'parent_home_screen.dart'; // Update path if needed
+import 'parent_home_screen.dart';
 
 class SelectChildScreen extends StatefulWidget {
   static const routeName = '/selectChild';
@@ -45,7 +45,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading students: $e')),
+        SnackBar(content: Text('Erreur lors du chargement des élèves : $e')),
       );
     }
   }
@@ -55,7 +55,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in.')),
+        const SnackBar(content: Text('Utilisateur non connecté.')),
       );
       return;
     }
@@ -71,7 +71,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error linking student: $e')),
+        SnackBar(content: Text('Erreur lors de la liaison : $e')),
       );
     }
   }
@@ -94,7 +94,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
             child: Column(
               children: [
                 Text(
-                  'Add Your Child',
+                  'Ajoutez votre enfant',
                   style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -103,14 +103,15 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Search Field
+                // Champ de recherche
                 Material(
                   elevation: 4,
                   borderRadius: BorderRadius.circular(12),
                   child: TextField(
                     controller: _searchController,
+                    style: const TextStyle(color: Colors.black), // Couleur du texte
                     decoration: InputDecoration(
-                      hintText: 'Search student name',
+                      hintText: 'Rechercher un élève',
                       hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
                       contentPadding:
@@ -132,6 +133,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
                   ),
                 ),
 
+
                 const SizedBox(height: 10),
 
                 Align(
@@ -140,7 +142,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
                     onPressed: skipSelection,
                     icon: const Icon(Icons.skip_next, color: Colors.white70),
                     label: const Text(
-                      'Skip for now',
+                      'Passer pour le moment',
                       style: TextStyle(
                         color: Colors.white70,
                         fontWeight: FontWeight.w500,
@@ -159,7 +161,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
                   Expanded(
                     child: students.isEmpty
                         ? const Center(
-                      child: Text("No matching students found.",
+                      child: Text("Aucun élève trouvé.",
                           style: TextStyle(color: Colors.white)),
                     )
                         : ListView.builder(
@@ -183,13 +185,13 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 10),
                             title: Text(
-                              student['full_name'] ?? 'Unknown Name',
+                              student['full_name'] ?? 'Nom inconnu',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            subtitle: Text("ID: ${student['id']}"),
+                            subtitle: Text("ID : ${student['id']}"),
                             trailing: ElevatedButton(
                               onPressed: () =>
                                   linkStudentToParent(student['id']),
@@ -199,7 +201,7 @@ class _SelectChildScreenState extends State<SelectChildScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              child: const Text('Select'),
+                              child: const Text('Sélectionner'),
                             ),
                           ),
                         );

@@ -10,7 +10,6 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
 
-  // Controllers
   final fullNameController = TextEditingController();
   final dobController = TextEditingController();
   final amountController = TextEditingController();
@@ -81,11 +80,11 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
     }
 
     try {
-      final childInsert = await supabase.from('children').insert({
-        'name': fullNameController.text,
+      final childInsert = await supabase.from('students').insert({
+        'full_name': fullNameController.text,
         'date_of_birth': dobController.text,
-        'class': _selectedClass,
-        'course': _selectedCourse,
+        'grade': _selectedClass,
+        'course_name': _selectedCourse,
         'parent_id': parentId,
       }).select().single();
 
@@ -93,7 +92,7 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
 
       await supabase.from('pyment').insert({
         'pyment_date': DateTime.now().toIso8601String(),
-        'child_id': childId,
+        'student_id': childId,
         'amount': double.parse(amountController.text),
         'method': _paymentMethod,
         'status': 'Pending',
@@ -136,7 +135,6 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
                     children: [
                       IconButton(
@@ -156,13 +154,9 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Section Title
                   _buildSectionTitle('👶 Child Info'),
-
                   _buildField(Icons.person, 'Full Name', controller: fullNameController),
                   _buildDateField(Icons.calendar_today, 'Date of Birth', dobController),
-
                   _buildDropdown(Icons.school, 'Select Level', levelToClasses.keys.toList(), onChanged: (val) {
                     setState(() {
                       _selectedLevel = val;
@@ -171,36 +165,26 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
                   }),
                   if (_selectedLevel != null)
                     _buildDropdown(Icons.class_, 'Select Class', levelToClasses[_selectedLevel]!, onChanged: (val) {
-                      setState(() {
-                        _selectedClass = val;
-                      });
+                      setState(() => _selectedClass = val);
                     }),
-
                   isLoadingCourses
                       ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                      : _buildDropdown(Icons.book, 'Select Course', courses, onChanged: (val) {
-                    setState(() => _selectedCourse = val);
-                  }),
-
+                      : _buildDropdown(Icons.book, 'Select Course', courses,
+                      currentValue: _selectedCourse,
+                      onChanged: (val) => setState(() => _selectedCourse = val)),
                   const SizedBox(height: 24),
-
                   _buildSectionTitle('💳 Payment Info'),
-
                   _buildDropdown(Icons.payment, 'Payment Method', paymentMethods, onChanged: (val) {
                     setState(() => _paymentMethod = val);
                   }),
-
                   _buildField(Icons.money, 'Amount (DA)', controller: amountController, keyboardType: TextInputType.number),
-
                   if (isCardPayment) ...[
                     _buildField(Icons.credit_card, 'Cardholder Name', controller: cardholderController),
                     _buildField(Icons.credit_card, 'Card Number', controller: cardNumberController, keyboardType: TextInputType.number),
                     _buildField(Icons.date_range, 'Expiry Date (MM/YY)', controller: expiryController),
                     _buildField(Icons.lock, 'CVV', controller: cvvController, keyboardType: TextInputType.number),
                   ],
-
                   const SizedBox(height: 30),
-
                   ElevatedButton.icon(
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Submit Registration'),
@@ -217,7 +201,6 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
                       }
                     },
                   ),
-
                   const SizedBox(height: 40),
                 ],
               ),
@@ -289,7 +272,8 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
     );
   }
 
-  Widget _buildDropdown(IconData icon, String label, List<String> options, {required ValueChanged<String?> onChanged}) {
+  Widget _buildDropdown(IconData icon, String label, List<String> options,
+      {required ValueChanged<String?> onChanged, String? currentValue}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
@@ -300,25 +284,23 @@ class _ChildRegistrationPageState extends State<ChildRegistrationPage> {
           border: Border.all(color: const Color(0xFF345FB4)),
         ),
         child: DropdownButtonFormField<String>(
+          value: currentValue,
           iconEnabledColor: const Color(0xFF345FB4),
           decoration: InputDecoration(
             labelText: label,
             labelStyle: const TextStyle(color: Colors.black, fontFamily: 'Poppins'),
             border: InputBorder.none,
           ),
-          items: options.map((option) {
-            return DropdownMenuItem(value: option, child: Text(option, style: const TextStyle(fontFamily: 'Poppins')));
-          }).toList(),
+          items: options
+              .map((option) => DropdownMenuItem(
+            value: option,
+            child: Text(option, style: const TextStyle(fontFamily: 'Poppins')),
+          ))
+              .toList(),
           onChanged: onChanged,
-          value: label.contains('Level')
-              ? _selectedLevel
-              : label.contains('Class')
-              ? _selectedClass
-              : _selectedCourse,
           validator: (value) => value == null ? 'Please select $label' : null,
           dropdownColor: Colors.white,
           style: const TextStyle(color: Colors.black, fontFamily: 'Poppins'),
-          isExpanded: true,
         ),
       ),
     );

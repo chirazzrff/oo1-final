@@ -21,7 +21,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
 
   String parentName = "";
-  String photoUrl = 'https://via.placeholder.com/150'; // default
+  String photoUrl = 'https://via.placeholder.com/150';
   List<Map<String, dynamic>> studentsData = [];
 
   @override
@@ -34,7 +34,6 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     try {
       final parentId = supabase.auth.currentUser!.id;
 
-      // 1. Get parent info
       final parentResponse = await supabase
           .from('Profiles')
           .select('name, photo_url')
@@ -47,7 +46,6 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
           photoUrl = parentResponse['photo_url'] ?? 'https://via.placeholder.com/150';
         });
 
-        // 2. Get students where parent_id == current user
         final studentsResponse = await supabase
             .from('students')
             .select()
@@ -58,7 +56,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         });
       }
     } catch (error) {
-      print("Error fetching parent data: $error");
+      print("Erreur lors de la récupération des données du parent: $error");
     }
   }
 
@@ -75,7 +73,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         decoration: BoxDecoration(gradient: backgroundGradient),
         child: Column(
           children: [
-            // HEADER
+            // EN-TÊTE
             Container(
               width: double.infinity,
               height: 180,
@@ -88,7 +86,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   Row(
                     children: [
                       const Text(
-                        "Parent Dashboard",
+                        "Tableau de bord Parent",
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 22,
@@ -110,7 +108,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    "Welcome, $parentName 👋",
+                    "Bienvenue, $parentName 👋",
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 16,
@@ -123,7 +121,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Your Children:",
+                          "Vos enfants :",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -143,7 +141,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
             const SizedBox(height: 10),
 
-            // GRID VIEW
+            // VUE EN GRILLE
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -153,15 +151,15 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                 children: [
                   ParentCard(
                     icon: Icons.payment,
-                    title: "Payment Status",
+                    title: "Paiements",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) =>ParentPaymentsScreen()),
+                      MaterialPageRoute(builder: (_) => ParentPaymentsScreen()),
                     ),
                   ),
                   ParentCard(
                     icon: Icons.app_registration,
-                    title: "Child Registration",
+                    title: "Inscription Enfant",
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => ChildRegistrationPage()),
@@ -169,7 +167,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   ),
                   ParentCard(
                     icon: Icons.book_online,
-                    title: "Lesson Compensation",
+                    title: "Rattrapage de Cours",
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => LessonCompensationScreen()),
@@ -177,30 +175,30 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   ),
                   ParentCard(
                     icon: Icons.check_circle,
-                    title: "Attendance",
+                    title: "Présence",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => ParentAttendanceScreen()),
+                      MaterialPageRoute(builder: (_) => EcranPresenceParent()),
                     ),
                   ),
                   ParentCard(
                     icon: Icons.message,
-                    title: "Chats",
+                    title: "Messages",
                     onTap: () => Navigator.pushNamed(context, '/UserListScreen'),
                   ),
                   ParentCard(
                     icon: Icons.assignment,
-                    title: "Homework",
+                    title: "Devoirs",
                     onTap: () => Navigator.pushNamed(context, 'HomeworkScreen'),
                   ),
                   ParentCard(
                     icon: Icons.grade,
-                    title: "Grades",
+                    title: "Notes",
                     onTap: () => Navigator.pushNamed(context, 'GradesScreen'),
                   ),
                   ParentCard(
                     icon: Icons.support_agent,
-                    title: "Support",
+                    title: "Assistance",
                     onTap: () => Navigator.pushNamed(context, 'TechnicalSupportScreen'),
                   ),
                 ],

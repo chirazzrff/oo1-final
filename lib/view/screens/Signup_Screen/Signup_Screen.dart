@@ -194,9 +194,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     value: _gender,
                     label: 'Genre',
                     items: ['Male', 'Female'],
-                    
                     onChanged: (val) => setState(() => _gender = val),
-
                   ),
                   const SizedBox(height: 16),
                   _buildDropdown(
@@ -209,26 +207,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : InkWell(
-                          onTap: _signUp,
-                          child: Container(
-                            width: double.maxFinite,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.all(Radius.circular(16)),
-                              border: Border.all(color: Colors.white),
-                            ),
-                            child: Center(
-                              child: const Text(
-                                'sigup',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                    onTap: _signUp,
+                    child: Container(
+                      width: double.maxFinite,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(16)),
+                        border: Border.all(color: Colors.white),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'signup',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            color: Colors.white,
                           ),
                         ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () {
@@ -282,7 +280,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       validator: (value) =>
-          value == null || value.isEmpty ? 'Champ requis' : null,
+      value == null || value.isEmpty ? 'Champ requis' : null,
     );
   }
 
@@ -295,25 +293,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return DropdownButtonFormField<String>(
       value: value,
       onChanged: onChanged,
-      icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+      icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
       style: dropdownTextStyle,
-      isExpanded: true,
+      dropdownColor: Colors.black87,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: dropdownTextStyle,
         filled: true,
         fillColor: Colors.white.withOpacity(0.2),
-        border: OutlineInputBorder(
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.blue.shade800),
         ),
       ),
       items: items
           .map((item) => DropdownMenuItem(
-                value: item,
-                child: Text(item, style: dropdownTextStyle),
-              ))
+        value: item,
+        child: Text(item, style: dropdownTextStyle),
+      ))
           .toList(),
       validator: (val) => val == null ? 'Champ requis' : null,
     );
   }
 }
+
+

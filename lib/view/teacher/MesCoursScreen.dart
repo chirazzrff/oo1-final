@@ -49,14 +49,14 @@ class _AddCourseMaterialScreenState extends State<AddCourseMaterialScreen> {
   Future<void> submitCourse() async {
     if (selectedGroupId == null || titleController.text.isEmpty || selectedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please fill all fields and select a file.")),
+        const SnackBar(content: Text("Veuillez remplir tous les champs et sélectionner un fichier.")),
       );
       return;
     }
 
     setState(() => isLoading = true);
 
-    // Upload file
+    // Upload du fichier
     final fileName = '${const Uuid().v4()}_${selectedFile!.path.split('/').last}';
     final fileBytes = await selectedFile!.readAsBytes();
     final storageResponse = await Supabase.instance.client.storage
@@ -65,7 +65,7 @@ class _AddCourseMaterialScreenState extends State<AddCourseMaterialScreen> {
 
     final fileUrl = Supabase.instance.client.storage.from('courses').getPublicUrl('materials/$fileName');
 
-    // Save to database
+    // Sauvegarde en base de données
     await Supabase.instance.client.from('courses').insert({
       'teacher_id': widget.teacherId,
       'group_id': selectedGroupId,
@@ -84,8 +84,8 @@ class _AddCourseMaterialScreenState extends State<AddCourseMaterialScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFEFF2FF),
       appBar: AppBar(
-        title: const Text('Add Course Material'),
-        backgroundColor: const  Color(0xFF8E9EFB),
+        title: const Text('Ajouter un matériel de cours'),
+        backgroundColor: const Color(0xFF8E9EFB),
         foregroundColor: Colors.white,
       ),
       body: Padding(
@@ -94,7 +94,7 @@ class _AddCourseMaterialScreenState extends State<AddCourseMaterialScreen> {
           children: [
             DropdownButtonFormField<String>(
               value: selectedGroupId,
-              hint: Text("Select Group"),
+              hint: const Text("Sélectionner un groupe"),
               items: groups.map((group) {
                 return DropdownMenuItem<String>(
                   value: group['id'],
@@ -102,32 +102,49 @@ class _AddCourseMaterialScreenState extends State<AddCourseMaterialScreen> {
                 );
               }).toList(),
               onChanged: (value) => setState(() => selectedGroupId = value),
-              decoration: InputDecoration(border: OutlineInputBorder(), fillColor: Colors.white, filled: true),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                fillColor: Colors.white,
+                filled: true,
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: titleController,
-              decoration: InputDecoration(labelText: 'Course Title', filled: true, fillColor: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Titre du cours',
+                filled: true,
+                fillColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: descriptionController,
               maxLines: 3,
-              decoration: InputDecoration(labelText: 'Description', filled: true, fillColor: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                filled: true,
+                fillColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 15),
             ElevatedButton.icon(
               onPressed: pickFile,
               icon: const Icon(Icons.upload_file),
-              label: const Text("Upload File"),
+              label: const Text("Téléverser un fichier"),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8E9EFB)),
             ),
             if (selectedFile != null) Text(selectedFile!.path.split('/').last),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: isLoading ? null : submitCourse,
-              child: isLoading ? CircularProgressIndicator(color: Colors.white) : const Text("Submit Course"),
-              style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50), backgroundColor: Color(0xFF8E9EFB)),
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Soumettre le cours"),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+                backgroundColor: const Color(0xFF8E9EFB),
+              ),
             )
           ],
         ),

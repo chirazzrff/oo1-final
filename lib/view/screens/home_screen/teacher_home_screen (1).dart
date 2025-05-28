@@ -60,110 +60,115 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F4F9),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // HEADER
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF8E9EFB), Color(0xFFB8C6DB)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(25),
-                  bottomRight: Radius.circular(25),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        "Espace Professeur",
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () async {
-                          await Supabase.instance.client.auth.signOut();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginScreen()),
-                          );
-                        },
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    "bienvenue, $teacherName 👋",
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // CARTES
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
-                  childAspectRatio: 0.95,
+      // Fond dégradé sur tout le body
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF8E9EFB), Color(0xFFB8C6DB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // HEADER avec background transparent (donc dégradé visible)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TeacherCard(
-                      icon: Icons.group_add,
-                      title: "cours",
-                      onTap: () {
-                        final teacherId = Supabase.instance.client.auth.currentUser?.id;
-                        if (teacherId != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddCourseMaterialScreen(teacherId: teacherId),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Vous devez être connecté.')),
-                          );
-                        }
-                      },
+                    Row(
+                      children: [
+                        const Text(
+                          "Espace Professeur",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () async {
+                            await Supabase.instance.client.auth.signOut();
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => LoginScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                        ),
+                      ],
                     ),
-                    TeacherCard(icon: Icons.assignment, title: "Cahier de texte", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CahierDeTexteScreen()))),
-                    TeacherCard(icon: Icons.schedule, title: "Emploi du temps", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EmploiDuTempsScreen()))),
-                    TeacherCard(icon: Icons.notifications, title: "Notifications", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen()))),
-                    TeacherCard(icon: Icons.lock, title: "Mot de passe", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChangePasswordScreen()))),
-                    TeacherCard(icon: Icons.people, title: "Liste des élèves", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentListPage()))),
-                    TeacherCard(icon: Icons.assignment_turned_in, title: "Résultats examens", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddStudentGradeScreen()))),
-                    TeacherCard(icon: Icons.book, title: "Syllabus", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SyllabusScreen()))),
-                    TeacherCard(icon: Icons.check_circle, title: "Attendance", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen()))),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Bienvenue, $teacherName 👋",
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+
+              const SizedBox(height: 20),
+
+              // Container avec coins arrondis MAIS sans fond blanc (transparent)
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    // Plus de couleur blanche ici, juste coins arrondis
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 15,
+                    mainAxisSpacing: 15,
+                    childAspectRatio: 0.95,
+                    children: [
+                      TeacherCard(
+                        icon: Icons.group_add,
+                        title: " ajouté un Coure",
+                        onTap: () {
+                          final teacherId = Supabase.instance.client.auth.currentUser?.id;
+                          if (teacherId != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AddCourseMaterialScreen(teacherId: teacherId),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Vous devez être connecté.')),
+                            );
+                          }
+                        },
+                      ),
+                      TeacherCard(icon: Icons.assignment, title: "Cahier de texte", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CahierDeTexteScreen()))),
+                      TeacherCard(icon: Icons.schedule, title: "Emploi du temps", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) =>  EmploiDuTempsScreen()))),
+                      TeacherCard(icon: Icons.notifications, title: "Notifications", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) =>  NotificationsScreen()))),
+                      TeacherCard(icon: Icons.lock, title: "Mot de passe", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) =>  ChangePasswordScreen()))),
+                      TeacherCard(icon: Icons.people, title: "Liste des élèves", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) =>  StudentListPage()))),
+                      TeacherCard(icon: Icons.assignment_turned_in, title: "Résultats examens", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) =>  AddStudentGradeScreen()))),
+                      TeacherCard(icon: Icons.book, title: "programme", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SyllabusScreen()))),
+                      TeacherCard(icon: Icons.check_circle, title: "la présence", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()))),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -179,7 +184,8 @@ class TeacherCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +193,7 @@ class TeacherCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white, // Gardé blanc ici pour les boutons, sinon lisibilité faible
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -202,7 +208,7 @@ class TeacherCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Color(0xFF345FB4)),
+            Icon(icon, size: 40, color: const Color(0xFF345FB4)),
             const SizedBox(height: 12),
             Text(
               title,
